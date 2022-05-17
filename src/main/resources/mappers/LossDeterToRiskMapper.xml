@@ -1,0 +1,419 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.learn.springmybatis.mapper.LossDeterToRiskDao">
+
+	<select id="getRiskManagementDataTest" parameterType="java.lang.String" resultType="com.learn.springmybatis.entity.lossdetertorisk.requestModel.RiskManagement">
+		select
+			E.ESTIMATENO,
+			E.caseno,
+			E.LOSSITEMSERIALNO,
+			P.factoryType as repairType,
+			trim(P.FactoryName) as repairName,
+			(SELECT Distinct priceschemename FROM C_ESTIMATE_REPAIR where estimateno=#{estimateNo} and rownum=1) as priceType,
+			B.DAMAGECARID,
+			trim(B.LICENSENO) as plateNo,
+			trim((SELECT  PA.frameno FROM P_AUTO_LIST PA, C_CLAIM CA
+			 WHERE CA.UNITCODE = PA.UNITCODE
+			   AND   CA.APPLYNO  = PA.APPLYNO AND   CA.APPLYENDORSENO = PA.APPLYENDORSENO
+			   AND   CA.ISMAIN  = '1' AND   CA.CASENO1 = #{caseNo} ))
+		    as vinCode,
+			P.FACTORYNAME,
+			B.DAMAGECARID as vehicleId,
+			CASE WHEN B.IFOBJECT = '1' THEN '标的车'
+				 WHEN B.IFOBJECT = '0' THEN '三者车'
+				END as vehicleType,
+			P.cardealername as vehicleShopName,
+			CASE WHEN P.cooperationType=3 THEN 1
+				 ELSE 0
+				END as cooperativeRepairFlag,
+			P.cardealername as repairBrands,
+			P.FitsDiscountRate as vehicleShopDiscount,
+			DU.unitname as roleSecondOrganization,
+			trim(DU.deptgroupcname) as roleThirdOrganization,
+			E.STATUS as status,
+			trim(D.opCode) as userId,
+			D.HandlerName as userName
+		FROM C_ESTIMATE E, C_LOSSITEM A, C_LOSS_PRO B,
+			 (
+				 SELECT
+					 DISTINCT T1.SERVERAREACODE,
+							  T1.FACTORYNAME,
+							  T1.MAINTENANCEMANNAME,
+							  T1.COOPERATIONTYPE COOPERATIONTYPE1,
+							  DECODE(T1.COOPERATIONTYPE, '1','1','0') COOPERATIONTYPE,
+							  NVL(T1.FACTORYTYPE,'1') FACTORYTYPE,
+							  T1.PHONE,
+							  T1.FACTORYADDR,
+							  T1.FitsDiscountRate,
+							  T1.cardealername
+				 FROM P_FACTORY T1,C_ESTIMATE Z,
+					  (
+						  SELECT MAX(X.FACTORYSN) FACTORYSN, X.SERVERAREACODE FROM P_FACTORY X,C_ESTIMATE Y
+						  WHERE
+							  Y.CASENO1=#{caseNo}
+							AND
+							  X.SERVERAREACODE=Y.REPAIRFACTCODE GROUP BY  X.SERVERAREACODE
+					  ) T2
+				 WHERE Z.CASENO1=#{caseNo} AND T1.SERVERAREACODE=Z.REPAIRFACTCODE  AND T1.FACTORYSN=T2.FACTORYSN
+			 ) P,
+			 d_Handler D,
+			 (SELECT  U.unitcode,U.unitname,  D.deptgroupcode, D.deptgroupcname FROM d_deptgroup D, d_unit U
+			  where D.Unitcode=U.Unitcode
+			 ) DU
+		where E.LOSSITEMSERIALNO = A.LOSSITEMSERIALNO
+		  AND A.SUBSERIALNO=B.AUTOSERIALNO
+		  AND E.REPAIRFACTCODE = P.SERVERAREACODE
+		  AND B.OPCODE=D.handlercode
+		  AND D.UnitCode=DU.Unitcode AND D.DEPTGROUPCODE=DU.DEPTGROUPCODE
+		  AND E.ESTIMATENO=#{estimateNo} AND A.CASENO1=#{caseNo}
+	</select>
+
+	<select id="getRiskManagementData" parameterType="java.lang.String" resultType="com.learn.springmybatis.entity.lossdetertorisk.requestModel.RiskManagement">
+		select M.ESTIMATENO,
+			   M.caseno,
+			   M.LOSSITEMSERIALNO,
+			   M.repairType,
+			   M.repairName,
+			   M.priceType,
+			   M.DAMAGECARID,
+			   M.plateNo,
+			   trim(M.vinCode) as vinCode,
+			   M.FACTORYNAME,
+			   M.vehicleId,
+			   M.vehicleType,
+			   M.vehicleShopName,
+			   M.cooperativeRepairFlag,
+			   M.repairBrands,
+			   M.vehicleShopDiscount,
+			   M.status,
+			   M.pro_OPCODE,
+			   D.handlercode,
+			   DU.unitname as roleSecondOrganization,
+			   trim(DU.deptgroupcname) as roleThirdOrganization,
+			   trim(D.opCode) as userId,
+			   D.HandlerName as userName
+		from (select E.ESTIMATENO,
+					 E.caseno,
+					 E.LOSSITEMSERIALNO,
+					 P.factoryType as repairType,
+					 trim(P.FactoryName) as repairName,
+					 (SELECT Distinct priceschemename
+					  FROM C_ESTIMATE_REPAIR
+					  where estimateno = #{estimateNo}
+						and rownum = 1) as priceType,
+					 B.DAMAGECARID,
+					 trim(B.LICENSENO) as plateNo,
+					 (SELECT PA.frameno
+					  FROM P_AUTO_LIST PA, C_CLAIM CA
+					  WHERE CA.UNITCODE = PA.UNITCODE
+						AND CA.APPLYNO = PA.APPLYNO
+						AND CA.APPLYENDORSENO = PA.APPLYENDORSENO
+						AND CA.ISMAIN = '1'
+						AND CA.CASENO1 = #{caseNo}) as vinCode,
+					 P.FACTORYNAME,
+					 B.DAMAGECARID as vehicleId,
+					 CASE
+						 WHEN B.IFOBJECT = '1' THEN
+							 '标的车'
+						 WHEN B.IFOBJECT = '0' THEN
+							 '三者车'
+						 END as vehicleType,
+					 P.cardealername as vehicleShopName,
+					 CASE
+						 WHEN P.cooperationType = 3 THEN
+							 1
+						 ELSE
+							 0
+						 END as cooperativeRepairFlag,
+					 P.cardealername as repairBrands,
+					 P.FitsDiscountRate as vehicleShopDiscount,
+					 E.STATUS as status,
+					 B.OPCODE as pro_OPCODE
+			  FROM C_ESTIMATE E,
+				   C_LOSSITEM A,
+				   C_LOSS_PRO B,
+				   (SELECT DISTINCT T1.SERVERAREACODE,
+									T1.FACTORYNAME,
+									T1.MAINTENANCEMANNAME,
+									T1.COOPERATIONTYPE COOPERATIONTYPE1,
+									DECODE(T1.COOPERATIONTYPE, '1', '1', '0') COOPERATIONTYPE,
+									NVL(T1.FACTORYTYPE, '1') FACTORYTYPE,
+									T1.PHONE,
+									T1.FACTORYADDR,
+									T1.FitsDiscountRate,
+									T1.cardealername
+					FROM P_FACTORY T1,
+						 C_ESTIMATE Z,
+						 (SELECT MAX(X.FACTORYSN) FACTORYSN, X.SERVERAREACODE
+						  FROM P_FACTORY X, C_ESTIMATE Y
+						  WHERE Y.CASENO1 = #{caseNo}
+							AND X.SERVERAREACODE = Y.REPAIRFACTCODE
+						  GROUP BY X.SERVERAREACODE) T2
+					WHERE Z.CASENO1 = #{caseNo}
+					  AND T1.SERVERAREACODE = Z.REPAIRFACTCODE
+					  AND T1.FACTORYSN = T2.FACTORYSN) P
+			  where E.LOSSITEMSERIALNO = A.LOSSITEMSERIALNO
+				AND A.SUBSERIALNO = B.AUTOSERIALNO
+				AND E.REPAIRFACTCODE = P.SERVERAREACODE
+				AND E.ESTIMATENO = #{estimateNo}
+				AND A.CASENO1 = #{caseNo}) M
+				 left join d_Handler D
+						   on M.PRO_OPCODE = D.handlercode
+				 left join (SELECT U.unitcode,
+								   U.unitname,
+								   D.deptgroupcode,
+								   D.deptgroupcname
+							FROM d_deptgroup D, d_unit U
+							where D.Unitcode = U.Unitcode) DU
+						   on D.UnitCode = DU.Unitcode
+							   AND D.DEPTGROUPCODE = DU.DEPTGROUPCODE
+	</select>
+
+	<select id="getPartsInfoList" parameterType="java.lang.String" resultType="com.learn.springmybatis.entity.lossdetertorisk.requestModel.PartsInfo">
+		SELECT
+			C.ID as reqID,
+			C.FACT_PART_CODE as reqPartNo,
+			C.MARKET_PRICE as reqPartPrice,
+			C.FACT_PART_NAME as reqPartName,
+			C.GUIDE_PRICE as req4sPrice
+		FROM  C_ESTIMATE_PART C WHERE C.ESTIMATENO=#{estimateNo} AND C.VERSION=(
+			SELECT MAX(C.VERSION) AS VERSION FROM C_ESTIMATE_CAR C WHERE  C.ESTIMATENO=#{estimateNo}
+		)
+	</select>
+
+	<insert id="insertAiResponseData" parameterType="com.learn.springmybatis.entity.lossdetertorisk.responseModel.Data">
+		INSERT INTO AI_RISK_DATA(ID, URL, BRAND_CLASS, ROUGH_FLAG, ESTIMATENO, CASENO, CREATE_TIME)
+		values(
+				  #{id, jdbcType=VARCHAR},
+				  #{url, jdbcType=VARCHAR},
+				  #{brandClass, jdbcType=VARCHAR},
+				  #{roughFlag, jdbcType=BIT},
+				  #{estimateno, jdbcType=INTEGER},
+				  #{caseno, jdbcType=VARCHAR},
+				  sysdate
+			  )
+	</insert>
+
+	<insert id="insertAiResponseDataRepPartsInfo" parameterType="com.learn.springmybatis.entity.lossdetertorisk.responseModel.RepPartsInfo">
+		INSERT INTO AI_RISK_REPPARTSINFO(
+			id,
+			DATA_ID,
+			REQ_ID,
+			REQ_PART_NO,
+			REQ_PART_PRICE,
+			REQ_PART_NAME,
+			REQ_PART4S
+		)
+		values(
+			#{id, jdbcType=VARCHAR},
+			#{dataId, jdbcType=VARCHAR},
+			#{reqId, jdbcType=VARCHAR},
+			#{reqPartNo, jdbcType=VARCHAR},
+			#{reqPartPrice, jdbcType=NUMERIC},
+			#{reqPartName, jdbcType=VARCHAR},
+			#{reqPart4s, jdbcType=NUMERIC}
+	   )
+	</insert>
+	
+	<insert id="insertAiResponseDataVehicle" parameterType ="java.util.List">
+		INSERT INTO AI_RISK_VEHICLE(
+			ID,
+			DATA_ID,
+			VIN_CODE,
+			TRANSMISSION,
+			VEHICLE_CHN,
+			DISPLACEMENT,
+			AI_YEAR,
+			SUB_BRAND
+		)
+		(
+		<foreach collection="list" item="item" index="" separator="union all">
+			select
+			#{item.id, jdbcType=VARCHAR},
+			#{item.dataId, jdbcType=VARCHAR},
+			#{item.vinCode, jdbcType=VARCHAR},
+			#{item.transmission, jdbcType=VARCHAR},
+			#{item.vehicleChn, jdbcType=VARCHAR},
+			#{item.displacement, jdbcType=VARCHAR},
+			#{item.year, jdbcType=VARCHAR},
+			#{item.subBrand, jdbcType=VARCHAR}
+			from dual
+		</foreach>
+		)
+	</insert>
+
+	<insert id="insertAiResponseDataRepPartsInfoPartInfo" parameterType="com.learn.springmybatis.entity.lossdetertorisk.responseModel.PartInfo">
+		INSERT INTO AI_RISK_PARTINFO(
+		  ID,
+		  REPPARTSINFO_ID,
+		  STANDARD_PART_NO,
+		  STANDARD_PRICE,
+		  STANDARD_PART_NAME,
+		  RISK_FLAG,
+		  STANDARD_PART_PRICE,
+		  DISCOUNT_PART_PRICE,
+		  IMAGE
+		)
+		values(
+		  #{id, jdbcType=VARCHAR},
+		  #{repPartsInfoId, jdbcType=VARCHAR},
+		  #{standardPartNo, jdbcType=VARCHAR},
+		  #{standardPrice, jdbcType=NUMERIC},
+		  #{standardPartName, jdbcType=VARCHAR},
+		  #{riskFlag, jdbcType=VARCHAR},
+		  #{standardPartPrice, jdbcType=NUMERIC},
+		  #{discountPartPrice, jdbcType=NUMERIC},
+		  #{image, jdbcType=VARCHAR}
+		)
+
+	</insert>
+
+	<insert id="insertInfoPartInfoChildParts" parameterType="com.learn.springmybatis.entity.lossdetertorisk.responseModel.ChildParts">
+		INSERT INTO AI_RISK_CHILDPART(
+			id,
+			reqid,
+			standardpartno,
+			partinfo_id
+		)
+		values (
+			#{id, jdbcType=VARCHAR},
+			#{reqId, jdbcType=VARCHAR},
+			#{standardPartNo, jdbcType=VARCHAR},
+			#{partInfoId, jdbcType=VARCHAR}
+		)
+	</insert>
+
+	<insert id="insertAiResponseDataRepPartsInfoPartInfoChildParts" parameterType="java.util.List">
+		INSERT INTO AI_RISK_CHILDPART(
+		ID, PARTINFO_ID, REQID, STANDARDPARTNO
+		)
+		(
+		<foreach collection="list" item="item" index="" separator="union all">
+			select
+			#{item.id, jdbcType=VARCHAR},
+			#{item.partInfoId, jdbcType=VARCHAR},
+			#{item.reqId, jdbcType=VARCHAR},
+			#{item.standardPartNo, jdbcType=VARCHAR}
+			from dual
+		</foreach>
+		)
+	</insert>
+
+	<insert id="insertScoreByBatch" parameterType ="java.util.List" >
+		INSERT INTO AI_RISK_CHILDPART(
+			ID, PARTINFO_ID, REQID, STANDARDPARTNO
+		)
+		(
+		<foreach collection="list" item="item" index="" separator="union all">
+			select
+			#{item.id, jdbcType=VARCHAR},
+			#{item.partInfoId, jdbcType=VARCHAR},
+			#{item.reqId, jdbcType=VARCHAR},
+			#{item.standardPartNo, jdbcType=VARCHAR}
+			from dual
+		</foreach>
+		)
+
+	</insert>
+
+	<insert id="insertRequestMsg" parameterType="java.lang.String">
+		INSERT INTO AI_RISK_DATA_REQUEST(ID, ESTIMATENO, CASENO, CREATE_TIME, MSG, STATUS)
+		values(
+				  #{uuid, jdbcType=VARCHAR},
+				  #{estimateNo, jdbcType=VARCHAR},
+				  #{caseNo, jdbcType=VARCHAR},
+				  sysdate,
+				  #{msg, jdbcType=CLOB},
+				  #{status, jdbcType=VARCHAR}
+			  )
+	</insert>
+
+	<select id="getTest" parameterType="java.lang.String" resultType="java.util.Map">
+		SELECT TRIM(C.CASENO), TRIM(C.APPLETS_LONGITUDE), TRIM(C.APPLETS_LATITUDE) FROM C_ACCIDENT_POSITION_INFO C  WHERE C.CASENO ='C021105072017800006'
+	</select>
+
+	<select id="hongBoTest" parameterType="java.lang.String" resultType="com.learn.springmybatis.entity.test.ClaimInfoVo">
+		SELECT CASENO,DAMAGEPLACE,NOTIFYMAN,DRIVER FROM C_CLAIM  WHERE CASENO1 = #{caseNo}
+	</select>
+
+	<select id="hongBoTestTwo" parameterType="java.lang.String" resultType="java.util.Map" >
+		SELECT trim(UNITCODE) as "unitCode",trim(DEPTGROUP),trim(REPORTUNIT) FROM C_CLAIM WHERE CASENO1 = #{caseNo}
+	</select>
+
+	<insert id="insertJsMsgXml" parameterType="com.learn.springmybatis.entity.jiangsu.JsRePushMsg" useGeneratedKeys="true" keyProperty="sid">
+
+		INSERT INTO C_CLAIM_REPUSH_MSG_TEST
+		(
+		sid,
+		worktype,
+		flag,
+		optime,
+		claimNo,
+		unitcode,
+		no1,
+		no2,
+		JS_EXCHANGE,
+		JS_QUEUE,
+		MSG_XML,
+		OPTIMES
+		)
+		VALUES
+		(
+		C_CLAIM_REPUSH_MSG_SEQ.nextval,
+		#{worktype,jdbcType=VARCHAR},
+		#{flag,jdbcType=VARCHAR},
+		#{optime},
+		#{claimNo,jdbcType=VARCHAR},
+		#{unitcode,jdbcType=VARCHAR},
+		#{no1,jdbcType=VARCHAR},
+		#{no2,jdbcType=VARCHAR},
+		#{js_Exchange,jdbcType=VARCHAR},
+		#{js_Queue,jdbcType=VARCHAR},
+		#{msg_Xml,jdbcType=CLOB},
+		#{optimes}
+		)
+	</insert>
+
+	<insert id="insertJsMsgXmlOriginal" parameterType="com.learn.springmybatis.entity.jiangsu.JsRePushMsg" useGeneratedKeys="true" keyProperty="sid">
+		<selectKey keyProperty="sid" order="BEFORE"  resultType="java.lang.String">
+			SELECT C_CLAIM_REPUSH_MSG_SEQ.nextval FROM DUAL
+		</selectKey>
+
+		INSERT INTO C_CLAIM_REPUSH_MSG
+		(
+		sid,
+		worktype,
+		flag,
+		optime,
+		claimNo,
+		unitcode,
+		no1,
+		no2,
+		JS_EXCHANGE,
+		JS_QUEUE,
+		MSG_XML,
+		OPTIMES
+		)
+		VALUES
+		(
+		#{sid,jdbcType=VARCHAR},
+		#{worktype,jdbcType=VARCHAR},
+		#{flag,jdbcType=VARCHAR},
+		#{optime},
+		#{claimNo,jdbcType=VARCHAR},
+		#{unitcode,jdbcType=VARCHAR},
+		#{no1,jdbcType=VARCHAR},
+		#{no2,jdbcType=VARCHAR},
+		#{js_Exchange,jdbcType=VARCHAR},
+		#{js_Queue,jdbcType=VARCHAR},
+		#{msg_Xml,jdbcType=CLOB},
+		#{optimes}
+		)
+	</insert>
+
+
+	<select id="getRedisStatus" resultType="java.lang.Boolean">
+		SELECT config_value as flag FROM C_CLAIM_CONFIG where config_key='redis_status_alive'
+	</select>
+
+</mapper>

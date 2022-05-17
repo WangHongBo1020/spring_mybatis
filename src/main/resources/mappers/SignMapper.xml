@@ -1,0 +1,887 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.learn.springmybatis.mapper.SignMapperDao">
+
+	<select id="getOneKeyGroupId" parameterType="String" resultType="String">
+		SELECT
+		GROUPCODE FROM D_GROUP_HANDLER WHERE HANDLERCODE=#{userCode}
+	</select>
+
+	<update id="upUserSign" parameterType="java.util.HashMap">
+		UPDATE T_USER_SIGN
+		SET
+		SIGNOUTDATE = SYSDATE,
+		UPDATETIME = SYSDATE,
+		SIGNOUTFLAG =
+		#{signOutFlag}
+		WHERE SERIALNO=#{serialNo} AND CREATETIME
+		&gt;=to_date(#{startTime},'yyyy-mm-dd')
+		AND CREATETIME
+		&lt;to_date(#{endTime},'yyyy-mm-dd')
+	</update>
+
+	<select id="getUserList" parameterType="String" resultType="String">
+		SELECT
+		HANDLERCODE FROM D_GROUP_HANDLER WHERE GROUPCODE=#{groupId}
+	</select>
+
+	<select id="getUnitByUserCode" parameterType="java.lang.String"
+		resultType="java.lang.String">
+		SELECT UNITCODE FROM D_HANDLER WHERE HANDLERCODE1=
+		#{_paramete}
+	</select>
+
+	<select id="getOneKeySwitch" parameterType="java.lang.String"
+		resultType="java.lang.Integer">
+		SELECT COUNT(1) FROM C_CLAIMFLOW_UNITCONFIG G WHERE
+		G.AUTH_CODE='611' AND G.STATUS='1' AND G.UNIT_CODE= #{unitCode}
+	</select>
+
+	<!--add by xukang 20200901 start 一键赔3.0 -->
+	<!--查询机构开关-->
+	<select id="queryUnitSwitch" parameterType="java.util.HashMap"
+			resultType="java.lang.Integer">
+		SELECT COUNT(1)
+		  FROM C_CLAIMFLOW_UNITCONFIG CCU
+		 WHERE CCU.AUTH_CODE = #{authCode}
+		   AND CCU.STATUS = '1'
+		   AND CCU.UNIT_CODE = #{unitCode}
+	</select>
+
+	<!--查询d_group-->
+	<select id="queryGroupCodeList" parameterType="java.util.HashMap"
+			resultType="java.lang.String">
+		SELECT DG.GROUPCODE
+		FROM D_GROUP DG
+		WHERE DG.GROUPSTATUS = #{groupStatus}
+		AND DG.FIRSTGROUPTYPE = #{firstGroupType}
+		AND DG.GROUPTYPE = #{groupType}
+	</select>
+	<!--add by xukang 20200901 end -->
+
+	<select id="getUserName" parameterType="java.lang.String"
+		resultType="java.lang.String">
+		SELECT HANDLERNAME FROM D_HANDLER WHERE HANDLERCODE1= #{_paramete}
+	</select>
+
+	
+		<update id="upSingOutFlag" parameterType="java.util.HashMap">
+		UPDATE T_USER_SIGN
+		SET
+		<!-- modify by liusen 20190718 start 如果拒绝签退不更新签退时间 -->
+		<if test="signOutFlag!=''">
+			SIGNOUTDATE = SYSDATE,
+		</if>
+		<!-- modify by liusen 20190718 end 如果拒绝签退不更新签退时间 -->
+		UPDATETIME = SYSDATE,
+		SIGNOUTFLAG =
+		#{signOutFlag}
+		WHERE SERIALNO=#{serialNo}
+	</update>
+
+	<!--add by zuoxiaosong 2019年7月15日 14:38:26 更新签退审核状态-->
+	<update id="upSignOutVerify" parameterType="java.util.HashMap">
+		UPDATE T_USER_SIGN
+		SET
+		APPLYSIGNOUTDATE = SYSDATE,
+		UPDATETIME = SYSDATE,
+		SIGNOUTFLAG =
+		#{signOutFlag}
+		WHERE SERIALNO=#{serialNo}
+	</update>
+
+
+	<!-- add by wujiyao start 20210526 查询redis上次的存活状态-->
+	<select id="getRedisBeforeStatus" resultType="java.lang.Boolean">
+		SELECT CONFIG_VALUE AS STATUS FROM C_CLAIM_CONFIG WHERE CONFIG_KEY='redis_status_alive'
+	</select>
+	<!-- add by wujiyao start 20210526 end-->
+
+	<select id="getGroupCacheHandler" parameterType="java.lang.String" resultType="com.learn.springmybatis.entity.qiandao.GroupCacheHandler">
+		SELECT * FROM D_GROUP_HANDLER_CACHE WHERE 1=1
+		<if test="groupId!=null and groupId!='' ">
+			AND GROUPID=#{groupId}
+		</if>
+		<if test="userCode!=null and userCode!='' ">
+			AND USERCODE=#{userCode}
+		</if>
+		<if test="isVideo!=null and isVideo!='' ">
+			AND isVideo=#{isVideo}
+		</if>
+		ORDER BY ISVIDEO
+	</select>
+
+	<update id="modifyRedisFlagWhenNotCon" parameterType="java.lang.String">
+		UPDATE C_CLAIM_CONFIG SET CONFIG_VALUE=#{value} WHERE CONFIG_KEY=#{key}
+	</update>
+    <update id="upadateTime">
+        UPDATE C_ACCVIDEO_GUIDE set
+
+        <if test="videoconnectDegree != null and videoconnectDegree =='1' ">
+            FIRSTCONNECTDATE = #{createTime},
+        </if>
+        <if test="status != null and status == 0">
+            STATUS= 1,
+        </if>
+        TIELINETIME =#{createTime},
+        ENDCONNECTDATE =#{updateTime},UPDATE_DATE = #{updateTime},CUMULATIVETIME=#{sec}
+        where ESTIMATENO =#{estimateNo}
+
+    </update>
+    <update id="upadatetime">
+        update wms_stockroom_discspot_details
+        set discspot_time = DATE_FORMAT(#{ssd} , '%Y-%m-%d %T')
+        where discspot_code = '1';
+
+    </update>
+    <update id="upadateyiwei">
+        update wms_stockroom_gression set stockroom_code = '1' where vin = 'TEST1234567891234'
+    </update>
+
+    <insert id="addGroupHandlerCache" parameterType="com.learn.springmybatis.entity.qiandao.GroupCacheHandler">
+		INSERT INTO D_GROUP_HANDLER_CACHE
+		    (SERIALNO, GROUPID, USERCODE, ISVIDEO)
+		VALUES
+			(
+				D_GROUP_HC_SEQ.nextval,
+				#{groupId},
+				#{userCode},
+				#{isVideo}
+			)
+	</insert>
+	<insert id="addGroupHandlerCacheList" parameterType ="java.util.List">
+		INSERT INTO D_GROUP_HANDLER_CACHE(
+			SERIALNO, GROUPID, USERCODE, ISVIDEO
+		)
+		(
+		<foreach collection="list" item="item" index="" separator="union all">
+			select
+				D_GROUP_HC_SEQ.nextval,
+				#{item.groupCode, jdbcType=VARCHAR},
+				#{item.userCode, jdbcType=VARCHAR},
+				#{item.isVideo, jdbcType=VARCHAR}
+			from dual
+		</foreach>
+		)
+	</insert>
+
+    <insert id="insetStockroomPreserve">
+        insert into wms_stockroom_preserve_detail (stockroom_preserve_detail_id, preserve_code, vin,
+                                          preserveago_data, preserveadv_data)
+        values (#{vo.stockroom_preserveDetailId},#{vo.preserveCode},#{vo.vin},
+                #{qian},#{hou})
+    </insert>
+
+    <insert id="insetcharubuwi">
+        insert into WMS_STOCKROOM_INSIDE_DETAILS(stockroom_inside_details_id, checkcar_code, massloss_position,
+                                         massloss_position_count, is_deleted)
+values(#{vo.stockroomInsideDetailsId},#{vo.checkcarCode},#{vo.masslossPosition},#{vo.masslossPositionCount},'0')
+    </insert>
+
+    <delete id="delGroupCacheHandler">
+		DELETE FROM D_GROUP_HANDLER_CACHE WHERE GROUPID=#{groupId} AND USERCODE=#{userCode} AND ISVIDEO=#{isVideo}
+	</delete>
+
+	<select id="getGroupCacheHandlerMap" resultType="com.learn.springmybatis.entity.qiandao.GroupCacheHandler">
+		SELECT groupId || 'group' as groupId, usercode FROM D_GROUP_HANDLER_CACHE WHERE ISVIDEO=#{isVideo} group by groupId,usercode
+	</select>
+
+	<select id="getGroupCacheHandlerUserCodeList" parameterType="java.lang.String" resultType="java.lang.String">
+		SELECT USERCODE as usercode FROM D_GROUP_HANDLER_CACHE WHERE 1=1
+		<if test="groupId!=null and groupId!='' ">
+			AND GROUPID=#{groupId}
+		</if>
+		<if test="userCode!=null and userCode!='' ">
+			AND USERCODE=#{userCode}
+		</if>
+		<if test="isVideo!=null and isVideo!='' ">
+			AND isVideo=#{isVideo}
+		</if>
+		ORDER BY ISVIDEO
+	</select>
+
+	<select id="findSzRePushMsgBySequenceNo" resultType="java.lang.String">
+    SELECT P.VALIDNO
+    FROM P_PUBLIC_POLICY P, C_CLAIM C
+     WHERE C.POLICYNO = P.POLICYNO
+       AND C.APPLYNO = P.APPLYNO
+       AND C.APPLYENDORSENO = P.APPLYENDORSENO
+       AND C.CLAIMNO1 =#{claimNo}
+    </select>
+
+	<select id="findSzRePushMsgByclaimNo"  resultType="java.lang.String">
+       SELECT BC.CLAIMCODE  FROM B_CLAIM_CODE BC WHERE BC.CLAIMNO1 = #{claimNo}
+    </select>
+
+	<!--根据报案号查询理赔编码  -->
+	<select id="findSzRePushMsgByclaimcode" resultType="java.lang.String">
+        SELECT TRIM(CLAIMCODE) FROM B_CLAIM_CODE WHERE CLAIMNO = #{claimNo}
+    </select>
+
+	<!--报案号查询赔付序号 -->
+	<select id="findSzRePushMsgBypaysequence" resultType="java.lang.String">
+    SELECT PAYSEQUENCE  FROM C_PAY WHERE CLAIMNO = #{claimNo}
+    </select>
+
+	<!--理算信息列表-->
+	<select id="findSzadjustmentList"
+			resultType="java.util.Map">
+        SELECT ${claimNo} CLAIMNO,
+        ${payseQuence} PAYSEQUENCE,
+        MAX((SELECT TO_CHAR(CLAIMTIME, 'yyyy-MM-dd HH:mm:ss')
+        FROM C_PAY
+        WHERE PAYSEQUENCE = #{payseQuence, jdbcType=VARCHAR})) CLAIMTIME,
+        SUM(OTHERFEE) OTHERFEE,
+        SUM(CLAIMAMOUNT) CLAIMAMOUNT,
+        '' UNDERWRITEDESC
+        FROM (SELECT (SELECT TO_CHAR(NVL(SUM(CLAIMAMOUNT), 0))
+        FROM C_PAY_DETAIL PD
+        WHERE PD.CLAIMNO = C.CLAIMNO
+        AND PD.PAYTYPE = '1') AS OTHERFEE,
+        (SELECT TO_CHAR(NVL(SUM(CLAIMAMOUNT), 0))
+        FROM C_PAY_DETAIL PD
+        WHERE PD.CLAIMNO = C.CLAIMNO
+        AND (PD.PAYTYPE = '0' OR
+        (PD.PAYTYPE = '1' AND PD.CLAIMITEM = '00048'))) CLAIMAMOUNT
+        FROM C_PAY C
+        WHERE PAYSEQUENCE = #{payseQuence, jdbcType=VARCHAR}
+        AND C.AUDITMARK = '1'
+        UNION ALL
+        SELECT TO_CHAR(SALVAGEFEE), NVL(TO_CHAR(M.TESTIMATAMOUNT), 0)
+        FROM C_LOCK M
+        WHERE FCLAIMNO = #{claimNo, jdbcType=VARCHAR}
+        AND RECOVERSTATUS = '2'
+        AND RECOVERYCODESTATUS <![CDATA[ <> ]]> '9'
+        AND IFONLINERECOVERY = '1')
+    </select>
+
+	<select id="getClaimFlowByClaimNo" resultType="java.lang.Integer">
+    select count(1)
+    from claim.c_claimflow_unitconfig a, c_claim b
+     where a.status = '1'
+     and b.notifydate > a.opdate
+     and rpad(a.unit_code, 8) = b.unitcode
+     and a.auth_code = '114'
+     and b.claimNo = #{claimNo}
+    </select>
+
+	<select id="getIdentification" resultType="java.lang.String">
+        SELECT A.COMPREHENSIVEREFORM
+     FROM P_PUBLIC_POLICY A
+    WHERE A.APPLYNO = (SELECT APPLYNO
+                         FROM C_CLAIM
+                        WHERE CASENO = #{caseNo}
+                          AND ISMAIN = 1)
+    </select>
+
+
+
+	<select id="getC_lossitemList" resultType="java.util.Map">
+		SELECT LOSSITEMSERIALNO,CASENO,TASKSERIALNO,LOSSTYPE,SUBSERIALNO,LICENSETYPE
+		MEMO,IFDISPATCH,DECODE(IFOBJECT,'1','1','2') AS IFOBJECT,CURRTASK,SURVEYSTATUS,
+		OPUNITCODE,OPCODE,OPDATE,TOOTHERSERIALNO,RESURVEYSERIALNO,
+		'99' AS INSERTUNIT,'00' INSERTOP,SYSDATE INSERTDATE,'22' LOSSITEMP17ID
+
+		FROM C_LOSSITEM A
+		WHERE CASENO1= #{caseno}
+		AND LOSSTYPE= #{losstype}
+
+		<if test="losstype != null and losstype == '1'">
+			AND EXISTS (SELECT '1' FROM C_LOSS_PRO B WHERE A.CASENO = B.CASENO AND A.SUBSERIALNO = B.AUTOSERIALNO)
+			AND IFESTIMATE='1'
+			AND EXISTS (SELECT 1 FROM C_ESTIMATE C WHERE C.LOSSITEMSERIALNO = A.LOSSITEMSERIALNO
+			AND C.CASENO= A.CASENO AND C.STATUS = '1' )
+		</if>
+		<if test="losstype != null and losstype == '2'">
+			AND IFESTIMATE='1'
+			AND EXISTS (SELECT 1 FROM C_ESTIMATE C WHERE C.LOSSITEMSERIALNO = A.LOSSITEMSERIALNO
+			AND C.CASENO= A.CASENO AND C.STATUS = '1')
+
+		</if>
+		<if test="losstype != null and losstype == '3'">
+			AND IFESTIMATE='1'
+			AND EXISTS (SELECT 1 FROM C_ESTIMATE C WHERE C.LOSSITEMSERIALNO = A.LOSSITEMSERIALNO
+			AND C.CASENO= A.CASENO AND C.STATUS = '1')
+
+		</if>
+
+	</select>
+	<select id="getJqFVehicleObjList" resultType="java.util.Map">
+		SELECT CLP.AUTOSERIALNO,
+           CLP.UNITCODE,
+           CLP.CASENO,
+           (CASE
+             WHEN CLP.LICENSENO = '不详' OR CLP.LICENSENO LIKE '%车%' OR
+                  CLP.LICENSENO LIKE '%牌%' OR CLP.LICENSENO LIKE '%无%' THEN
+              ''
+             ELSE
+              CLP.LICENSENO
+           END) AS LICENSENO,
+           CLP.MOBILETYPE,
+           CLP.SURVEYSTATUS,
+           CLP.MODELCODE,
+           CLP.MODELNAME,
+           CLP.ENGINENO,
+           CLP.PLACE,
+           CLP.DRIVERNAME,
+           CLP.AGE,
+           NVL(CLP.SEX, '9') AS SEX,
+           CLP.TELEPHONE,
+           (CASE
+             WHEN CLP.IFOBJECT = '1' THEN
+              (SELECT CSA.DRIVERCARDNO
+                 FROM C_SURVEYREPORT CSA
+                WHERE CSA.CASENO = CLP.CASENO)
+             ELSE
+              CLP.DRIVENO
+           END) AS DRIVERNO,
+           CLP.DRIVETYPE,
+           CLP.DRIVEYEAR,
+           CLP.COLOR,
+           CLP.CARTYPE AS CARKIND,
+           CLP.IFMATCH,
+           CLP.NOTMATCH,
+           CLP.FIXCODE,
+           DECODE(CLP.IFOBJECT, '0', '2', '1', '1') AS IFOBJECT,
+           CLP.FRAMENO,
+           CLP.OPUNITCODE,
+           CLP.OPCODE,
+           CLP.OPDATE,
+           CLP.IDCARD,
+           CLP.IFMARRY,
+           CLP.LICENSECOLOR,
+           CLP.AUTOTYPE,
+           CLP.FIXNAME,
+           CLP.DRIVEYEARBAK,
+           CLP.MODLESN,
+           CLP.PHONE,
+           CLP.CONTACT,
+           CLP.VINCODE,
+           CLP.VINRESULT,
+           CLP.OTHERUNIT,
+           CLP.DRIVERPASS,
+           CLP.IFYEARPASS,
+           CLP.TON,
+           CLP.ISAVAILABLE,
+           '' ESTIMATETYPE,
+           '' AUDATEX_ID,
+           '' VINEXPLAIN,
+           '' ID_TYPE,
+           (CASE
+             WHEN CLP.IFOBJECT = '1' THEN
+              (SELECT CSA.DRIVERCARDNO
+                 FROM C_SURVEYREPORT CSA
+                WHERE CSA.CASENO = CLP.CASENO)
+             ELSE
+              CLP.DRIVENO
+           END) AS DRIVERID,
+           '' OWNERS,
+           '' OWNERS_ID_TYPE,
+           '' OWNERS_IDCARD_NUMBER,
+           '' OWNERS_PHONE,
+           SYSDATE LICENSENODATE,
+           CLP.REGISTEDATE,
+           (CASE
+             WHEN CLP.IFOBJECT = '1' THEN
+              (CASE
+                WHEN CLP.LICENSENO = '不详' OR CLP.LICENSENO LIKE '%车%' OR
+                     CLP.LICENSENO LIKE '%牌%' OR CLP.LICENSENO LIKE '%无%' THEN
+                 ''
+                ELSE
+                 (SELECT MAX(M.BRANDTYPE)
+                    FROM P_AUTO_LIST M
+                   WHERE M.APPLYNO = (SELECT Q.POLICYNO
+                                        FROM C_CLAIM Q
+                                       WHERE Q.CASENO = CLP.CASENO
+                                         AND ROWNUM = 1))
+              END)
+             ELSE
+              (CASE
+                WHEN CLP.LICENSENO = '不详' OR CLP.LICENSENO LIKE '%车%' OR
+                     CLP.LICENSENO LIKE '%牌%' OR CLP.LICENSENO LIKE '%无%' THEN
+                 ''
+                WHEN CLP.LICENSETYPE IS NULL OR CLP.LICENSETYPE = '99' THEN
+                 '25'
+                ELSE
+                 CLP.LICENSETYPE
+              END)
+           END) AS LICENSETYPE,
+           CLP.INITIALDATE
+      FROM C_LOSS_PRO CLP
+     WHERE CLP.CASENO = #{caseno}
+       AND CLP.AUTOSERIALNO = #{subserialno}
+	</select>
+
+	<select id="getFVehicleObjList" resultType="java.util.Map">
+      SELECT CLP.AUTOSERIALNO,
+         CLP.UNITCODE,
+         CLP.CASENO,
+         (CASE
+           WHEN CLP.LICENSENO = '不详' OR CLP.LICENSENO LIKE '%车%' OR
+                CLP.LICENSENO LIKE '%牌%' OR CLP.LICENSENO LIKE '%无%' THEN
+            ''
+           ELSE
+            CLP.LICENSENO
+         END) AS LICENSENO,
+         CLP.MOBILETYPE,
+         CLP.SURVEYSTATUS,
+         CLP.MODELCODE,
+         CLP.MODELNAME,
+         CLP.CARTYPE AS CARKIND,
+         CLP.ENGINENO,
+         CLP.PLACE,
+         CLP.DRIVERNAME,
+         CLP.AGE,
+         NVL(CLP.SEX, '9') AS SEX,
+         CLP.TELEPHONE,
+         (CASE
+           WHEN CLP.IFOBJECT = '1' THEN
+            (SELECT CSA.DRIVERCARDNO
+               FROM C_SURVEYREPORT CSA
+              WHERE CSA.CASENO = CLP.CASENO)
+           ELSE
+            CLP.DRIVENO
+         END) AS DRIVERNO,
+         CLP.DRIVETYPE,
+         CLP.DRIVEYEAR,
+         CLP.COLOR,
+         CLP.IFMATCH,
+         CLP.NOTMATCH,
+         CLP.FIXCODE,
+         DECODE(CLP.IFOBJECT, '0', '2', '1', '1') AS IFOBJECT,
+         CLP.FRAMENO,
+         CLP.OPUNITCODE,
+         CLP.OPCODE,
+         CLP.OPDATE,
+         DECODE(CLP.IFALLLOSS,
+                '01',
+                '1',
+                '02',
+                '1',
+                '03',
+                '0',
+                '1',
+                '1',
+                '0') AS IFALLLOSS,
+         CLP.WATERFLOODEDLEVEL,
+         CLP.IDCARD,
+         CLP.IFMARRY,
+         CLP.LICENSECOLOR,
+         CLP.AUTOTYPE,
+         CLP.FIXNAME,
+         CLP.DRIVEYEARBAK,
+         CLP.MODLESN,
+         CLP.PHONE,
+         CLP.CONTACT,
+         CLP.VINCODE,
+         CLP.VINRESULT,
+         CLP.OTHERUNIT,
+         CLP.DRIVERPASS,
+         CLP.IFYEARPASS,
+         CLP.TON,
+         CLP.ISAVAILABLE,
+         '' ESTIMATETYPE,
+         '' AUDATEX_ID,
+         '' VINEXPLAIN,
+         '' ID_TYPE,
+         (CASE
+           WHEN CLP.IFOBJECT = '1' THEN
+            (SELECT CSA.DRIVERCARDNO
+               FROM C_SURVEYREPORT CSA
+              WHERE CSA.CASENO = CLP.CASENO)
+           ELSE
+            CLP.DRIVENO
+         END) AS DRIVERID,
+         '' OWNERS,
+         '' OWNERS_ID_TYPE,
+         '' OWNERS_IDCARD_NUMBER,
+         '' OWNERS_PHONE,
+         SYSDATE LICENSENODATE,
+         CLP.REGISTEDATE,
+         (CASE
+           WHEN CLP.IFOBJECT = '1' THEN
+            (CASE
+              WHEN CLP.LICENSENO = '不详' OR CLP.LICENSENO LIKE '%车%' OR
+                   CLP.LICENSENO LIKE '%牌%' OR CLP.LICENSENO LIKE '%无%' THEN
+               ''
+              ELSE
+               (SELECT CASE
+                         WHEN MAX(M.BRANDTYPE) = '25' OR MAX(M.BRANDTYPE) IS NULL THEN
+                          '99'
+                         ELSE
+                          MAX(M.BRANDTYPE)
+                       END
+                  FROM P_AUTO_LIST M
+                 WHERE M.APPLYNO = (SELECT Q.POLICYNO
+                                      FROM C_CLAIM Q
+                                     WHERE Q.CASENO = CLP.CASENO
+                                       AND ROWNUM = 1))
+            END)
+           ELSE
+            (CASE
+              WHEN CLP.LICENSENO = '不详' OR CLP.LICENSENO LIKE '%车%' OR
+                   CLP.LICENSENO LIKE '%牌%' OR CLP.LICENSENO LIKE '%无%' THEN
+               ''
+              WHEN CLP.LICENSETYPE IS NULL OR CLP.LICENSETYPE = '25' THEN
+               '99'
+              ELSE
+               CLP.LICENSETYPE
+            END)
+         END) AS LICENSETYPE,
+         CLP.INITIALDATE
+    FROM C_LOSS_PRO CLP
+   WHERE CLP.CASENO = #{caseno}
+     AND CLP.AUTOSERIALNO = #{subserialno}
+
+    </select>
+
+    <select id="getC_surveytask" resultType="java.util.Map">
+            SELECT *
+            FROM (SELECT DECODE(CS.IFLOCALE, '1', '2', '0', '3', '1') AS IFLOCALE,
+            TO_CHAR(CC.FINISH_TIME, 'yyyy-mm-dd HH24:mm') AS BEGINTIME
+            FROM C_SURVEYTASK CS, C_CLAIM_TASKS CC
+            WHERE CC.CASENO = CS.CASENO1
+            AND CC.BIZ_STAGE = '007'
+            AND CC.STATUS = '6'
+            AND CC.CASENO = #{caseno}
+            ORDER BY BEGINTIME)
+            WHERE ROWNUM = 1
+
+    </select>
+
+    <select id="genC_claimObj" resultType="com.learn.springmybatis.utils.C_Claim">
+     select c.*,
+         (select o.opentime
+            from c_openclaim o
+           where o.opensequence = c.opensequence) as opentime,
+         (case
+           when c.district = 0 then
+            '01'
+           when c.district is null then
+            '01'
+           when c.district = '' then
+            '01'
+           else
+            c.district
+         end) newdistrict,
+         (select distinct ifsubrogation
+            from c_property m
+           where m.claimno = c.claimno) as ifsub
+    from c_claim c
+    where c.claimno = #{claimNo}
+    </select>
+    <select id="getUnderWriteEndTime"  resultType="java.util.Map">
+        SELECT C.CLAIMAMOUNT,
+       C.PAYSEQUENCE,
+       to_char(C.CLAIMTIME, 'yyyy-MM-dd HH:mm') AS CLAIMTIME,
+       to_char(C.OPDATE, 'yyyy-MM-dd HH:mm') AS OPDATE
+    FROM C_PAY C
+     WHERE C.CLAIMNO1 = #{claimNo}
+    </select>
+
+
+    <select id="getC_estimate" resultType="java.util.Map">
+        SELECT C.*,
+            (SELECT T.HANDLERNAME
+               FROM D_HANDLER T
+              WHERE T.HANDLERCODE = C.ESTIMATECODE) AS HANDLERNAME
+       FROM (SELECT CASE
+                      WHEN A.MAKECODE IS NULL THEN
+                       B.MAKERCODE
+                      ELSE
+                       A.MAKECODE
+                    END AS ESTIMATECODE,
+                    A.*,
+                    CASE
+                      WHEN A.MAKECODE IS NULL THEN
+                       (SELECT D.IDNO
+                          FROM D_HANDLER D
+                         WHERE D.HANDLERCODE = B.MAKERCODE)
+                      ELSE
+                       (SELECT D.IDNO
+                          FROM D_HANDLER D
+                         WHERE D.HANDLERCODE = A.MAKECODE)
+                    END AS ESTIMATECERTICODE,
+                    B.ISFLOODEDCAR
+               FROM C_ESTIMATE A, C_SURVEYREPORT B
+              WHERE A.CASENO = B.CASENO
+                AND A.CASENO1 = #{caseno}
+                AND A.LOSSITEMSERIALNO = #{lossitemserialno}) C
+    </select>
+
+    <select id="getC_estimatelistObjMap" resultType="java.util.Map">
+    select '2' as ChangeOrRepair,
+       cep.fact_part_name as FittingName,
+       cep.appr_part_amount as FittingNum,
+       cep.appr_part_price as MaterialFee,
+       '1' as ManHour,
+       '100' as ManPowerFee,
+       '0' as IsSubjoin,
+       '000000000' FittingHostCode,
+       cep.eval_part_price FittingPrice,
+       '0000002' FittingPriceType
+     from c_estimate_part cep
+     where cep.estimateno = #{estimateno}
+     and cep.version = (
+        select max(version) from c_estimate_part where estimateno = #{estimateno})
+
+    </select>
+
+    <select id="getC_taskauditCl" resultType="java.util.Map">
+        select t.transactor,
+         t.finishtime,
+         (select b.handlername
+            from d_handler b
+           where b.handlercode1 = t.transactor) as handlername,
+         (select b.idno from d_handler b where b.handlercode1 = t.transactor) as UnderWriteCertiCode
+        from (select (case
+                   when cs.biz_stage = '009' then
+                    '53000033'
+                   else
+                    cs.task_handler
+                 end) as transactor,
+                 to_char(cs.finish_time + numtodsinterval(5, 'MINUTE'),
+                         'yyyy-mm-dd HH24:mm') as finishtime
+            from c_claim_tasks cs
+           where cs.biz_stage in ('004', '009')
+             and cs.status = '6'
+             and cs.caseno = #{caseNo}
+             and cs.bind_bizno = #{estimateno}
+           order by cs.finish_time desc) t
+        where rownum = 1
+    </select>
+
+
+    <select id="getC_loss_SionPoint"
+            resultType="com.learn.springmybatis.utils.Collisionpoint">
+    SELECT NVL(COLLISIONPOINT, 01) AS COLLISIONPOINT
+    FROM C_LOSS_SIONPOINT A
+   WHERE A.CASENO = #{caseNo}
+     AND A.ESTIMATENO IN
+         (SELECT ESTIMATENO FROM C_ESTIMATE WHERE LOSSITEMSERIALNO = #{lossitemserialno})
+     AND PERSONCARD = '1'
+
+    </select>
+    <select id="getclaimNo" resultType="com.learn.springmybatis.utils.C_Claim">
+        SELECT TRIM(A.CLAIMNO1) CLAIMNO1 FROM C_CLAIM A WHERE A.CASENO1 =#{caseNo}
+    </select>
+    <select id="getSwitch" resultType="java.lang.Boolean">
+    SELECT COUNT(1) FROM C_CLAIMFLOW_UNITCONFIG C,C_CLAIM CC WHERE  C.AUTH_CODE = '994' AND C.STATUS = '1'
+		 				    AND C.Unit_Code=TRIM(CC.UNITCODE)
+		 				    AND CC.CLAIMNO1=#{claimno1}
+		 				    AND CC.NOTIFYDATE >C.OPDATE
+    </select>
+    <select id="getCustomerNatureIdcardNo" resultType="com.learn.springmybatis.utils.AmlCustomerNature">
+        SELECT C.ID,
+       C.CUSTOMER_TYPE,
+       C.CASENO,
+       C.CUSTOMER_NAME,
+       C.IDENTITY_TYPE,
+       C.SEX,
+       C.NATIONALITY,
+       C.PHONE,
+       C.IDCARD_NO,
+       C.IDCARD_VALIDITY_DATE,
+       C.OTHER_ID_TYPE,
+       C.OTHER_ID_NO,
+       C.OTHER_ID_VALIDITY_DATE,
+       C.ADDRESS,
+       C.WORK_ADDRESS,
+       C.RELATION1,
+       C.RELATION3,
+       C.OTHER_INFO,
+       C.OCCUPATION
+
+      ,
+       C.CLAIMAPPLICANT_NAME,
+       C.CLAIMAPPLICANT_ID_TYPE,
+       C.CLAIMAPPLICANT_ID_NO,
+       C.CLAIMAPPLICANT_TYPE
+
+  FROM C_AMLCUSTOMER_NATURE C
+ WHERE C.Idcard_No = #{idcardNo}
+    </select>
+    <select id="getAcquisitionTime" resultType="com.learn.springmybatis.entity.test.AccVideoGuideentity">
+        select i.CREATE_TIME AS createTime ,i.UPDATE_TIME  AS updateTime from VIDEO_CALL_VIDEO_INFO i
+        where i.VIDEO_PATH = #{VIDEO_PATH}
+    </select>
+
+    <select id="getcumulativeTime" resultType="com.learn.springmybatis.entity.test.AccVideoGuidVo">
+    SELECT C.CUMULATIVETIME  AS cumulativeTime , C.FIRSTCONNECTDATE AS firstconnectDate,
+    C.VIDEOCONNECTDEGREE AS videoconnectDegree, C.STATUS AS status
+    FROM C_ACCVIDEO_GUIDE C WHERE ESTIMATENO =#{estimateNo}
+    </select>
+    <select id="getgibaoanInfos" resultType="com.learn.springmybatis.entity.test.GibaoanInfo">
+    SELECT STANDING AS MAN_LOSS_TYPE FROM C_LOSS_MAN WHERE CASENO1 =#{caseNo}
+    </select>
+    <select id="getc_claim" resultType="java.lang.String">
+        select c.LOSSTYPE from c_claim c where  CASENO1 =#{caseNo}
+    </select>
+
+    <select id="getreopenReason" resultType="java.lang.String">
+select REOPENCLAIM AS REOPENREASON from C_PAY where CLAIMNO1 =#{claimNo} AND REOPENCLAIM IS NOT NULL
+    </select>
+
+    <select id="getlicenseno" resultType="com.learn.springmybatis.entity.test.GuangAiInfo">
+        SELECT distinct PAL.BRANDTYPE                                    AS LICENSETYPE,
+        cc.NOTIFYMAN                                     AS notifyMan,
+        CC.CASENO1                                       AS CASENO,
+        CC.CLAIMNO1										 AS CALIMNO,
+        to_char(CC.NOTIFYDATE, 'yyyy-MM-dd HH24:mi:ss')  AS notifyTime,
+        to_char(CC.DAMAGEDATE, 'yyyy-MM-dd HH24:mi:ss')  AS damageDate,
+        to_char(CC.ENDCASEDATE, 'yyyy-MM-dd HH24:mi:ss') AS closeTime,
+        CC.CLAIMTYPE as claimtype,
+        CC.ENDSTATUS                                     AS bzStatus,
+        cc.LICENSENO                                     AS LICENSENO,
+        cc.ENGINENO                                      AS ENGINENO,
+        NVL(CP.CLAIMAMOUNT,0) AS BZPAYAMOUNT
+
+        FROM P_AUTO_LIST PAL,
+        C_CLAIM CC,
+        C_SURVEYREPORT CS,
+        C_PAY CP
+        WHERE PAL.APPLYNO = CC.APPLYNO
+        AND CC.CASENO1 = CS.CASENO1
+        AND CC.CLAIMNO1 = CP. CLAIMNO1
+        <if test="caseNo != null and caseNo != '' ">
+            AND CS.CASENO1 = #{caseNo}
+        </if>
+        <if test="vin != null and vin != '' ">
+            and cc.FRAMENO = #{vin}
+        </if>
+        <if test="plateNo != null and plateNo != '' ">
+            and cc.LICENSENO = #{plateNo}
+        </if>
+        <if test="engineNo != null and engineNo != '' ">
+            and cc.ENGINENO = #{engineNo}
+        </if>
+        <if test="policyNo != null and policyNo != '' ">
+            and POLICYNO1 = #{policyNo}
+        </if>
+
+    </select>
+
+    <!--查询立案时间-->
+    <select id="queryOpenTimeByCaseNo" resultType="java.util.Date">
+		select opentime from (
+		select to_char(c.opentime, 'yyyy-mm-dd hh24:mi:ss') opentime
+		from c_openclaim c
+		where c.caseno1=#{caseNo,jdbcType=VARCHAR}
+		order by c.opentime desc)
+		where rownum=1
+	</select>
+
+    <select id="queryWeipan" resultType="com.learn.springmybatis.entity.test.Testceshi">
+        SELECT WSC.bankinside_status as bankinsideStatus,
+        (SELECT count(1)
+        FROM wms_stockroom_inside_details WSC
+        WHERE WSC.checkcar_code = #{claimNo}
+        and WSC.bankinside_status = 1) as count
+        FROM wms_stockroom_inside_details WSC
+        WHERE WSC.checkcar_code = #{claimNo}
+        and WSC.bankinside_status = 0
+    </select>
+    <select id="queryYipan" resultType="com.learn.springmybatis.entity.changjiu.Testceshic">
+        SELECT WSC.bankinside_status as bankinsideStatus
+        FROM wms_stockroom_inside_details WSC
+        WHERE WSC.checkcar_code = #{claimNo}
+        and WSC.bankinside_status = 1
+    </select>
+    <select id="queryBrandStockroom" resultType="com.learn.springmybatis.entity.changjiu.WmsGression">
+         select
+            wms.brand_id brandId ,
+            wms.clientele_id as clienteleId,
+            wms.clientele_name as clienteleName,
+            wbs.stockroom_partition_id as stockroomPartitionId,
+            wbs.stockroom_code as stockroomCode
+        from wms_stockroom_memory wms,
+             wms_brand_stockroom wbs
+        where wms.clientele_id = wbs.clientele_id
+        and wms.brand_id = wbs.brand_id
+        and wms.vin = #{vin}
+        and wbs.stockroom_name = #{stockroomName}
+    </select>
+
+    <select id="getpositionStatus" resultType="java.lang.String">
+        select wsp.position_code as positionCode
+        from wms_stockroom_partition wms
+                 left join wms_stockroom_position wsp on wms.stockroom_partition_id = wsp.partition_id
+        where wsp.position_code = #{s}
+        <if test="list != null and list.size() > 0">
+            and  wms.stockroom_partition_id in
+            <foreach item="item" collection="list" separator="," open="(" close=")">
+                #{item.stockroomPartitionId}
+            </foreach>
+        </if>
+        and wsp.position_status = '0'
+    </select>
+
+    <select id="queryBrandStockrooms" resultType="java.lang.String">
+        select create_time as sss from wms_stockroom_memory where region_id = '1234'
+    </select>
+
+    <select id="getweihujihuachaxun"
+            resultType="com.learn.springmybatis.entity.changjiu.WmsStockroomPreserveDetail">
+        select stockroom_preserve_detail_id,
+               preserve_code,
+               vin,
+               preserveago_data,
+               preserveadv_data
+        from wms_stockroom_preserve_detail
+        where preserve_code = #{vo}
+    </select>
+
+    <select id="chongfushuju" resultType="com.learn.springmybatis.entity.changjiu.WmsStockroomDiscspotDetails">
+
+    </select>
+
+    <select id="queryData" resultType="com.learn.springmybatis.entity.changjiu.WmsStockroomMonthdiscspotFsDto">
+        select wms.discspot_code                             as discspotCode,
+               wms.stockroom_name                            as stockroomName,
+               wms.stockroom_code                            as stockroomCode,
+               '已完成'                                         as discspotStatus,
+               '月盘'                                          as discspotType,
+               wms.create_time                               as createTime,
+               wms.start_time                                as createTime,
+               wms.complete_time                             as completeTime,
+               wms.create_user                               as createUser,
+               wms.create_username                           as createUsername,
+               wms.tenant_id                                 as tenantId,
+               wds.customer_name                             as customerName,
+               wds.brand_name                                as brandName
+        from wms_stockroom_discspot wms
+                 left join wms_stockroom_discspot_details wds
+                           on wms.discspot_code = wds.discspot_code
+        where  wms.discspot_task_type = '0'
+          and wms.discspot_status = '3'
+          and wms.discspot_type = '1'
+          and wms.is_deleted = '0'
+          and wds.is_deleted = '0'
+    </select>
+
+    <select id="querySumAmount"
+            resultType="com.learn.springmybatis.entity.changjiu.WmsStockroomMonthdiscspotFsDto">
+        select discspot_code        as discspotCode,
+        customer_name        as customerName,
+        brand_name           as brandName,
+        sum(plan_amount)     as planAmount,
+        sum(realdisc_amount) as realdiscAmount,
+        sum(diff_erence)     as diffErence
+        from wms_stockroom_discspot_details
+        where is_deleted = '0'
+        <if test="list != null and list.size() > 0">
+            and (discspot_code,customer_name,brand_name) in
+
+            <foreach item="item" collection="list" separator="," open="(" close=")">
+                <trim prefix="(" suffix=")" suffixOverrides=",">
+                    #{item.discspotCode},#{item.customerName},#{item.brandName}
+                </trim>
+
+            </foreach>
+
+        </if>
+        group by discspot_code, customer_name, brand_name
+    </select>
+
+
+</mapper>
